@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CashPro</title>
+<link rel="manifest" href="manifest.json">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-900 text-white p-4">
+
+<h1 class="text-2xl font-bold mb-4">CashPro</h1>
+
+<div class="mb-4">
+  <h2>Total Saldo</h2>
+  <div id="totalBalance" class="text-3xl text-blue-400"></div>
+</div>
+
+<div class="space-y-2 mb-4">
+  <select id="accountType" class="text-black p-2 w-full">
+    <option value="Cash">Cash</option>
+    <option value="Bank">Bank</option>
+    <option value="Ewallet">Ewallet</option>
+  </select>
+
+  <input id="amount" type="number" placeholder="Jumlah" class="text-black p-2 w-full"/>
+
+  <select id="type" class="text-black p-2 w-full">
+    <option value="income">Income</option>
+    <option value="expense">Expense</option>
+  </select>
+
+  <button onclick="addTransaction()" class="bg-blue-600 w-full py-2 rounded">
+    Tambah
+  </button>
+</div>
+
+<canvas id="chart"></canvas>
+
+<script>
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js")
+}
+
+let data = JSON.parse(localStorage.getItem("cashpro")) || {
+  accounts:{Cash:0,Bank:0,Ewallet:0},
+  transactions:[]
+}
+
+function save(){
+  localStorage.setItem("cashpro",JSON.stringify(data))
+}
+
+function addTransaction(){
+  const acc = accountType.value
+  const amt = parseInt(amount.value||0)
+  const typeVal = type.value
+
+  if(typeVal==="income") data.accounts[acc]+=amt
+  else data.accounts[acc]-=amt
+
+  data.transactions.push({acc,amt,typeVal})
+  save()
+  render()
+}
+
+function render(){
+  const total = Object.values(data.accounts).reduce((a,b)=>a+b,0)
+  totalBalance.innerText = "Rp "+total.toLocaleString()
+
+  const ctx = document.getElementById("chart")
+  new Chart(ctx,{
+    type:"pie",
+    data:{
+      labels:Object.keys(data.accounts),
+      datasets:[{data:Object.values(data.accounts)}]
+    }
+  })
+}
+
+render()
+</script>
+
+</body>
+</html>

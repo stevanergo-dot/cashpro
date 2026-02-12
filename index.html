@@ -8,35 +8,63 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body class="bg-slate-900 text-white p-4">
 
-<h1 class="text-2xl font-bold mb-4">CashPro</h1>
+<body class="bg-slate-900 text-white min-h-screen p-4">
 
-<div class="mb-4">
-  <h2>Total Saldo</h2>
-  <div id="totalBalance" class="text-3xl text-blue-400"></div>
+<h1 class="text-2xl font-bold mb-6">CashPro</h1>
+
+<!-- TOTAL CARD -->
+<div class="bg-slate-800 p-4 rounded-2xl mb-6 shadow-lg">
+  <p class="text-slate-400">Total Saldo</p>
+  <h2 id="totalBalance" class="text-3xl font-bold text-blue-400"></h2>
 </div>
 
-<div class="space-y-2 mb-4">
-  <select id="accountType" class="text-black p-2 w-full">
+<!-- INPUT CARD -->
+<div class="bg-slate-800 p-4 rounded-2xl mb-6 shadow-lg space-y-3">
+
+  <select id="accountType" class="w-full p-2 rounded text-black">
     <option value="Cash">Cash</option>
     <option value="Bank">Bank</option>
     <option value="Ewallet">Ewallet</option>
   </select>
 
-  <input id="amount" type="number" placeholder="Jumlah" class="text-black p-2 w-full"/>
+  <input id="amount" type="number" placeholder="Jumlah" 
+         class="w-full p-2 rounded text-black"/>
 
-  <select id="type" class="text-black p-2 w-full">
+  <select id="type" class="w-full p-2 rounded text-black">
     <option value="income">Income</option>
     <option value="expense">Expense</option>
   </select>
 
-  <button onclick="addTransaction()" class="bg-blue-600 w-full py-2 rounded">
-    Tambah
+  <button onclick="addTransaction()" 
+          class="w-full bg-blue-600 py-2 rounded-xl font-semibold">
+    Tambah Transaksi
   </button>
+
 </div>
 
-<canvas id="chart"></canvas>
+<!-- SUMMARY -->
+<div class="grid grid-cols-2 gap-4 mb-6">
+  <div class="bg-slate-800 p-4 rounded-2xl">
+    <p class="text-slate-400">Income</p>
+    <p id="incomeTotal" class="text-green-400 font-bold text-lg"></p>
+  </div>
+  <div class="bg-slate-800 p-4 rounded-2xl">
+    <p class="text-slate-400">Expense</p>
+    <p id="expenseTotal" class="text-red-400 font-bold text-lg"></p>
+  </div>
+</div>
+
+<!-- CHART -->
+<div class="bg-slate-800 p-4 rounded-2xl mb-6">
+  <canvas id="chart"></canvas>
+</div>
+
+<!-- TRANSACTIONS -->
+<div class="bg-slate-800 p-4 rounded-2xl">
+  <h3 class="mb-3 font-semibold">Riwayat Transaksi</h3>
+  <div id="history" class="space-y-2 text-sm"></div>
+</div>
 
 <script>
 if("serviceWorker" in navigator){
@@ -60,7 +88,7 @@ function addTransaction(){
   if(typeVal==="income") data.accounts[acc]+=amt
   else data.accounts[acc]-=amt
 
-  data.transactions.push({acc,amt,typeVal})
+  data.transactions.push({acc,amt,typeVal,date:new Date().toLocaleDateString()})
   save()
   render()
 }
@@ -69,14 +97,38 @@ function render(){
   const total = Object.values(data.accounts).reduce((a,b)=>a+b,0)
   totalBalance.innerText = "Rp "+total.toLocaleString()
 
+  let income = 0
+  let expense = 0
+
+  data.transactions.forEach(t=>{
+    if(t.typeVal==="income") income+=t.amt
+    else expense+=t.amt
+  })
+
+  incomeTotal.innerText = "Rp "+income.toLocaleString()
+  expenseTotal.innerText = "Rp "+expense.toLocaleString()
+
   const ctx = document.getElementById("chart")
   new Chart(ctx,{
-    type:"pie",
+    type:"doughnut",
     data:{
       labels:Object.keys(data.accounts),
-      datasets:[{data:Object.values(data.accounts)}]
+      datasets:[{
+        data:Object.values(data.accounts)
+      }]
     }
   })
+
+  history.innerHTML = data.transactions
+    .slice().reverse()
+    .map(t=>`
+      <div class="flex justify-between">
+        <span>${t.acc}</span>
+        <span class="${t.typeVal==='income'?'text-green-400':'text-red-400'}">
+          ${t.typeVal==='income'?'+':'-'} Rp ${t.amt.toLocaleString()}
+        </span>
+      </div>
+    `).join("")
 }
 
 render()
